@@ -1,0 +1,54 @@
+# Docker Compose file Reference (https://docs.docker.com/compose/compose-file/)
+version: '3'
+
+#Define services
+services:
+
+  #PostgreSQL Database for the application
+  my-postgres:
+    image: "postgres:12.9"
+    container_name: my-postgres
+    #Volume mounted for database for the storage
+    volumes:
+      - my-data:/var/lib/postgresql/data
+    ports:
+      - 5433:5432 # Forward the exposed port 5432 on the container to port 5433 on the host machine
+
+    #Environment variable for DB name, user and password
+    environment:
+      - POSTGRES_DB=employee
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - quarkus
+
+  #Back-end Quarkus Application
+  employee-app:
+    image: quarkus/employee-system-jvm
+    #The docker file in employee-app build the jar and provides the docker image with the following name.
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: employee-app
+
+    #Environment variables for Quarkus Application.
+    environment:
+      - DB_SERVER=my-postgres
+      - POSTGRES_DB=employee
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 8080:8080 # Forward the exposed port 8080 on the container to port 8080 on the host machine
+#    links:
+    depends_on:
+      - my-postgres
+    networks:
+      - quarkus
+
+#Volumes for DB data
+volumes:
+  my-data:
+
+networks:
+  quarkus:
+    driver: bridge
